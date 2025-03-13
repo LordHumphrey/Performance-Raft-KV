@@ -1,6 +1,8 @@
 package store
 
 import (
+	"fmt"
+	"github.com/hashicorp/raft"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -119,4 +121,13 @@ func Test_StoreInMemOpenSingleNode(t *testing.T) {
 	if value != "" {
 		t.Fatalf("key has wrong value: %s", value)
 	}
+}
+
+func Test_TestRaft(t *testing.T) {
+	// Get the type of a Raft object
+	store := raft.NewInmemStore()
+	fmt.Printf("Raft implementation type: %T\n", store)
+
+	// Check if your fork has any unique methods or structs
+	// that you can use to identify it
 }

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/otoolep/hraftd/etcdapi"
 	httpd "github.com/otoolep/hraftd/http"
 	"github.com/otoolep/hraftd/store"
 )
@@ -18,12 +19,14 @@ import (
 const (
 	DefaultHTTPAddr = "localhost:11000"
 	DefaultRaftAddr = "localhost:12000"
+	DefaultEtcdAddr = "localhost:2379"  // Default etcd API address
 )
 
 // Command line parameters
 var inmem bool
 var httpAddr string
 var raftAddr string
+var etcdAddr string
 var joinAddr string
 var nodeID string
 
@@ -31,6 +34,7 @@ func init() {
 	flag.BoolVar(&inmem, "inmem", false, "Use in-memory storage for Raft")
 	flag.StringVar(&httpAddr, "haddr", DefaultHTTPAddr, "Set the HTTP bind address")
 	flag.StringVar(&raftAddr, "raddr", DefaultRaftAddr, "Set Raft bind address")
+	flag.StringVar(&etcdAddr, "eaddr", DefaultEtcdAddr, "Set etcd API bind address")
 	flag.StringVar(&joinAddr, "join", "", "Set join address, if any")
 	flag.StringVar(&nodeID, "id", "", "Node ID. If not set, same as Raft bind address")
 	flag.Usage = func() {
@@ -66,9 +70,16 @@ func main() {
 		log.Fatalf("failed to open store: %s", err.Error())
 	}
 
+	// Start the HTTP service
 	h := httpd.New(httpAddr, s)
 	if err := h.Start(); err != nil {
 		log.Fatalf("failed to start HTTP service: %s", err.Error())
+	}
+
+	// Start the etcd API service
+	e := etcdapi.New(etcdAddr, s)
+	if err := e.Start(); err != nil {
+		log.Fatalf("failed to start etcd API service: %s", err.Error())
 	}
 
 	// If join was specified, make the join request.
@@ -79,7 +90,9 @@ func main() {
 	}
 
 	// We're up and running!
-	log.Printf("hraftd started successfully, listening on http://%s", httpAddr)
+	log.Printf("hraftd started successfully")
+	log.Printf("HTTP service listening on http://%s", httpAddr)
+	log.Printf("etcd API service listening on %s", etcdAddr)
 
 	terminate := make(chan os.Signal, 1)
 	signal.Notify(terminate, os.Interrupt)
