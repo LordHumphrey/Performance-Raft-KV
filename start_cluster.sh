@@ -9,58 +9,26 @@ DEFAULT_BASE_HTTP_PORT=11000
 DEFAULT_BASE_RAFT_PORT=12000
 DEFAULT_BASE_ETCD_PORT=2379
 DEFAULT_DATA_DIR="/tmp/hraftd_cluster"
+DEFAULT_EXECUTABLE_PATH="./Raw/hraftd"
+
+# 环境变量优先级高于默认值
+HRAFTD_EXECUTABLE="${HRAFTD_EXECUTABLE:-$DEFAULT_EXECUTABLE_PATH}"
+HRAFTD_DATA_DIR="${HRAFTD_DATA_DIR:-$DEFAULT_DATA_DIR}"
 
 # 帮助信息
 usage() {
     echo "Usage: $0 [options]"
     echo "Options:"
     echo "  -n, --nodes NUM     Number of nodes to start (default: $DEFAULT_NODE_COUNT)"
-    echo "  -d, --data-dir DIR  Base directory for node data (default: $DEFAULT_DATA_DIR)"
+    echo "  -d, --data-dir DIR  Base directory for node data (default: $HRAFTD_DATA_DIR)"
+    echo "  -e, --executable PATH  Path to hraftd executable (default: $HRAFTD_EXECUTABLE)"
     echo "  -h, --help          Show this help message"
     exit 1
 }
 
-# 清理和准备数据目录的函数
-prepare_data_dir() {
-    local data_dir="$1"
-
-    # 删除并重新创建数据目录
-    rm -rf "$data_dir"
-    mkdir -p "$data_dir"
-
-    # 设置目录权限，确保当前用户可以读写
-    chmod 755 "$data_dir"
-
-    # 创建节点信息文件
-    for ((i=0; i<NODES; i++)); do
-        local node_dir="$data_dir/node$i"
-        mkdir -p "$node_dir"
-        chmod 755 "$node_dir"
-
-        # 创建节点信息文件
-        cat > "$node_dir/node_info.txt" << EOF
-Node ID: node$i
-HTTP Port: $((DEFAULT_BASE_HTTP_PORT + i))
-Raft Port: $((DEFAULT_BASE_RAFT_PORT + i))
-Etcd Port: $((DEFAULT_BASE_ETCD_PORT + i))
-Data Directory: $node_dir
-Timestamp: $(date '+%Y-%m-%d %H:%M:%S')
-EOF
-        chmod 644 "$node_dir/node_info.txt"
-
-        # 创建空的键值存储文件
-        touch "$node_dir/kv_store.json"
-        chmod 644 "$node_dir/kv_store.json"
-
-        # 创建日志文件
-        touch "$node_dir/node.log"
-        chmod 644 "$node_dir/node.log"
-    done
-}
-
 # 解析命令行参数
 NODES=$DEFAULT_NODE_COUNT
-DATA_DIR=$DEFAULT_DATA_DIR
+DATA_DIR="$HRAFTD_DATA_DIR"
 INMEM=false
 
 while [[ $# -gt 0 ]]; do
@@ -72,6 +40,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -d|--data-dir)
             DATA_DIR="$2"
+            shift 2
+            ;;
+        -e|--executable)
+            HRAFTD_EXECUTABLE="$2"
             shift 2
             ;;
         --inmem)
@@ -88,15 +60,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# 准备数据目录
-prepare_data_dir "$DATA_DIR"
-
 # 在启动节点前检查可执行文件
-if [ ! -x "./hraftd" ]; then
-    echo "错误: hraftd 可执行文件不存在或没有执行权限"
-    echo "请先编译项目: go build 或 make"
+if [ ! -x "$HRAFTD_EXECUTABLE" ]; then
+    echo "错误: hraftd 可执行文件不存在或没有执行权限: $HRAFTD_EXECUTABLE"
+    echo "请检查可执行文件路径或使用 -e 参数指定"
     exit 1
 fi
+
+# 确保数据目录存在并具有正确权限
+mkdir -p "$DATA_DIR"
+chmod 755 "$DATA_DIR"
 
 # 启动第一个节点（初始集群）
 echo "Starting first node (cluster leader)..."
@@ -105,12 +78,17 @@ FIRST_NODE_RAFT_PORT=$((DEFAULT_BASE_RAFT_PORT))
 FIRST_NODE_ETCD_PORT=$((DEFAULT_BASE_ETCD_PORT))
 FIRST_NODE_DATA_DIR="$DATA_DIR/node0"
 
+# 确保第一个节点的数据目录存在
+mkdir -p "$FIRST_NODE_DATA_DIR"
+chmod 755 "$FIRST_NODE_DATA_DIR"
+touch "$FIRST_NODE_DATA_DIR/node.log"
+
 INMEM_FLAG=""
 if [ "$INMEM" = true ]; then
     INMEM_FLAG="--inmem"
 fi
 
-./hraftd \
+"$HRAFTD_EXECUTABLE" \
     -id node0 \
     -haddr "localhost:$FIRST_NODE_HTTP_PORT" \
     -raddr "localhost:$FIRST_NODE_RAFT_PORT" \
@@ -129,7 +107,12 @@ for ((i=1; i<NODES; i++)); do
     NODE_ETCD_PORT=$((DEFAULT_BASE_ETCD_PORT + i))
     NODE_DATA_DIR="$DATA_DIR/node$i"
 
-    ./hraftd \
+    # 确保每个节点的数据目录存在
+    mkdir -p "$NODE_DATA_DIR"
+    chmod 755 "$NODE_DATA_DIR"
+    touch "$NODE_DATA_DIR/node.log"
+
+    "$HRAFTD_EXECUTABLE" \
         -id "node$i" \
         -haddr "localhost:$NODE_HTTP_PORT" \
         -raddr "localhost:$NODE_RAFT_PORT" \
@@ -154,6 +137,3 @@ for ((i=0; i<NODES; i++)); do
     echo "  Etcd: localhost:$ETCD_PORT"
     echo "  Log: $DATA_DIR/node$i/node.log"
 done
-
-echo "Cluster is running. Press Ctrl+C to stop."
-wait

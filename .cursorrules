@@ -5,14 +5,26 @@
 1. 为这个项目添加Etcd的API接口，支持Etcd的API接口调用
 2. 你只需要完成etcd v3版本的API接口，不支持etcd v2版本的API接口
 3. 你只需要实现Range\Put\Delete这三个API接口，不实现其他API接口
+# 编写测试脚本
+1. 你需要编写一个测试脚本，测试键值存储在不同的参数下的性能表现
+2. 先使用`go-ycsb load etcd -P /home/taowong/Dev/Perf-KV/workloada -p etcd.endpoints=http://localhost:2379`加载数据
+3. 然后使用`go-ycsb run etcd -P /home/taowong/Dev/Perf-KV/workloada -p etcd.endpoints=http://localhost:2379`执行测试
+4. 将测试结果保存到`Test-Result`+时间目录下
+5. 每次测试前都需要清空数据目录，重新启动新的集群，确保集群完全初始化
+6. 脚本需要测试的参数组合为：
+    1. 集群节点数量为`3,5,7,9,11,15,21,31`
+    2. 测试负载类型为`workloada~workloadaf`
+    3. 上面一共8*6=48次测试
+7. 你需要完成三轮上面的测试过程，确保数据的可靠性，你应该保存每个测试组合的所有原始数据，比如：集群节点数量为3，workloada负载，这个测试结果文件中应该有三次测试的原始数据。
+8. 保存测试结果时，必须写清楚集群节点数量和测试负载类型
 # 开发要求
-1. 你是一个经验丰富的Go语言开发工程师，熟悉Go语言的语法和特性
-2. 你是一个有责任心的开发工程师，对于业务需求有清晰的认识，能够准确理解用户需求
-- 你需要使用etcd client进行测试，确保API接口的正确性
-- 你需要给出详细的测试代码，并给出测试结果
-- 你需要根据测试结果继续修改代码，直到代码正确为止。
-- 使用SS命令检查网络监听
-- 不要使用grep过滤节点日志，你应该读取所有日志文件
+-   你是一个经验丰富的Go语言开发工程师，熟悉Go语言的语法和特性
+-   你是一个有责任心的开发工程师，对于业务需求有清晰的认识，能够准确理解用户需求
+-   你需要使用etcd client进行测试，确保API接口的正确性
+-   你需要给出详细的测试代码，并给出测试结果
+-   你需要根据测试结果继续修改代码，直到代码正确为止。
+-   使用SS命令检查网络监听
+-   不要使用grep过滤节点日志，你应该读取所有日志文件
 -   **Development Process:** You must adhere to a strict test-driven development (TDD) cycle. This means:
     1.  Write code to implement a *small* part of the required functionality.
     2.  Run the existing test suite (or new tests you've added).
