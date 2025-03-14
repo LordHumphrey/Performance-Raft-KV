@@ -24,7 +24,8 @@ func (s *Service) Range(ctx context.Context, req *pb.RangeRequest) (*pb.RangeRes
 
 	if len(req.RangeEnd) == 0 {
 		// Single key lookup
-		value, err := s.store.Get(key)
+		// 默认不解码
+		value, err := s.store.Get(key, false)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}

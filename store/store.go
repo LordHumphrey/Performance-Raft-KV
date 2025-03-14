@@ -120,10 +120,38 @@ func (s *Store) Open(enableSingle bool, localID string) error {
 }
 
 // Get returns the value for the given key.
-func (s *Store) Get(key string) (string, error) {
+// 如果 decode 为 true，尝试解码 JSON 格式的值
+func (s *Store) Get(key string, decode bool) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.m[key], nil
+
+	value, exists := s.m[key]
+	if !exists {
+		return "", fmt.Errorf("key not found")
+	}
+
+	if decode {
+		// 尝试解析 JSON
+		var decodedValue interface{}
+		err := json.Unmarshal([]byte(value), &decodedValue)
+		if err == nil {
+			// 如果解析成功，转换为字符串
+			switch v := decodedValue.(type) {
+			case string:
+				return v, nil
+			case float64:
+				return fmt.Sprintf("%f", v), nil
+			case bool:
+				return fmt.Sprintf("%v", v), nil
+			default:
+				// 对于复杂类型，返回 JSON 字符串
+				jsonStr, _ := json.Marshal(v)
+				return string(jsonStr), nil
+			}
+		}
+	}
+
+	return value, nil
 }
 
 // Set sets the value for the given key.
@@ -290,3 +318,58 @@ func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {
 }
 
 func (f *fsmSnapshot) Release() {}
+
+// Count 返回当前存储的键值对数量
+func (s *Store) Count() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.m)
+}
+
+// ListN 返回前 N 条键值对，支持可选的解码参数
+func (s *Store) ListN(n int, decode bool) map[string]string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// 如果 n 大于当前存储的键值对数量，返回所有键值对
+	if n > len(s.m) {
+		n = len(s.m)
+	}
+
+	result := make(map[string]string)
+	count := 0
+	for k, v := range s.m {
+		if decode {
+			// 尝试解码
+			var decodedValue interface{}
+			err := json.Unmarshal([]byte(v), &decodedValue)
+			if err == nil {
+				// 如果解析成功，转换为字符串
+				switch val := decodedValue.(type) {
+				case string:
+					result[k] = val
+				case float64:
+					result[k] = fmt.Sprintf("%f", val)
+				case bool:
+					result[k] = fmt.Sprintf("%v", val)
+				default:
+					// 对于复杂类型，返回 JSON 字符串
+					jsonStr, _ := json.Marshal(val)
+					result[k] = string(jsonStr)
+				}
+			} else {
+				// 解码失败，保留原始值
+				result[k] = v
+			}
+		} else {
+			result[k] = v
+		}
+
+		count++
+		if count >= n {
+			break
+		}
+	}
+
+	return result
+}

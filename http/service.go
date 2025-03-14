@@ -8,13 +8,14 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
 // Store is the interface Raft-backed key-value stores must implement.
 type Store interface {
-	// Get returns the value for the given key.
-	Get(key string) (string, error)
+	// Get returns the value for the given key, with optional decoding
+	Get(key string, decode bool) (string, error)
 
 	// Set sets the value for the given key, via distributed consensus.
 	Set(key, value string) error
@@ -24,6 +25,12 @@ type Store interface {
 
 	// Join joins the node, identitifed by nodeID and reachable at addr, to the cluster.
 	Join(nodeID string, addr string) error
+
+	// Count returns the number of key-value pairs in the store.
+	Count() int
+
+	// ListN returns the first n key-value pairs from the store.
+	ListN(n int, decode bool) map[string]string
 }
 
 // Service provides HTTP service.
@@ -78,6 +85,10 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.handleKeyRequest(w, r)
 	} else if r.URL.Path == "/join" {
 		s.handleJoin(w, r)
+	} else if r.URL.Path == "/count" {
+		s.handleCount(w, r)
+	} else if r.URL.Path == "/list" {
+		s.handleList(w, r)
 	} else {
 		w.WriteHeader(http.StatusNotFound)
 	}
@@ -127,10 +138,16 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 		k := getKey()
 		if k == "" {
 			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
-		v, err := s.store.Get(k)
+
+		// 从查询参数获取解码选项，默认为 false
+		query := r.URL.Query()
+		decode := query.Get("decode") == "true"
+
+		v, err := s.store.Get(k, decode)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
@@ -142,7 +159,6 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, string(b))
 
 	case "POST":
-		// Read the value from the POST body.
 		m := map[string]string{}
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -175,4 +191,57 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 // Addr returns the address on which the Service is listening
 func (s *Service) Addr() net.Addr {
 	return s.ln.Addr()
+}
+
+// handleCount handles requests to get the count of key-value pairs in the store.
+func (s *Service) handleCount(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	count := s.store.Count()
+
+	// 返回 JSON 格式的数量
+	response := map[string]int{"count": count}
+	b, err := json.Marshal(response)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, string(b))
+}
+
+// handleList handles requests to get the first n key-value pairs from the store.
+func (s *Service) handleList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 从查询参数获取 n 的值和解码选项
+	query := r.URL.Query()
+	n := 10
+	if nStr := query.Get("n"); nStr != "" {
+		if parsedN, err := strconv.Atoi(nStr); err == nil {
+			n = parsedN
+		}
+	}
+
+	// 从查询参数获取解码选项，默认为 false
+	decode := query.Get("decode") == "true"
+
+	// 获取前 n 条数据
+	data := s.store.ListN(n, decode)
+
+	b, err := json.Marshal(data)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, string(b))
 }
