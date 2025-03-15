@@ -6,8 +6,41 @@
 - 这个 Follower 会请求此时 Leader 的 Commit Index
 - 拿到 Leader 的最新的 Commit Index 后
 - 等本地 Apply 到 Leader 最新的 Commit Index 后，然后将这条数据返回给客户端
-## 核心机制
-
+Follower Read优化实现方案概要设计
+1. 总体架构
+目标：允许Follower节点直接处理读请求，减轻Leader负担
+核心思想：确保从Follower读取数据时满足线性一致性
+实现原理：等待Follower节点应用到Leader节点的最新提交索引后再读取数据
+2. 核心组件
+2.1 Leader Commit Index获取机制
+新增HTTP端点/leader-commit-index
+通过Hashicorp Raft库获取当前节点的CommitIndex
+在Store层提供GetCommitIndex()和GetLeaderCommitIndex()方法
+2.2 Follower Read处理流程
+检查当前节点角色
+如果是Follower，获取Leader的最新CommitIndex
+等待本地AppliedIndex达到Leader的CommitIndex
+从本地状态机读取数据返回
+2.3 等待机制
+在Store层实现WaitForCommitIndex(targetIndex)方法
+使用简单轮询或条件变量实现等待
+不考虑超时机制，仅实现基本原型
+2.4 读负载均衡
+维护活跃Follower节点列表
+使用轮询或随机策略选择节点
+Leader将读请求转发到选定Follower
+3. 接口设计
+GetCommitIndex() uint64
+GetAppliedIndex() uint64
+GetLeaderCommitIndex() (uint64, error)
+WaitForCommitIndex(targetIndex uint64) error
+Get(key string) (string, error) // 修改现有方法支持Follower读取
+## 测试策略
+1. 单元测试：验证新增的各个方法功能正确性
+2. 集成测试：验证完整的Follower Read流程
+3. 性能测试：比较优化前后的读取性能和Leader负载
+4. 一致性测试：确保从Follower读取的数据与从Leader读取的一致
+通过以上设计，可以实现一个基本的Follower Read功能，达到分散读负载和提高系统整体读取性能的目标。
 ## 补充说明
 1. 这个优化的目的是什么？是为了提高读取的一致性还是为了减轻Leader的负担？
 回答：为了减轻Leader的负担，同时提高集群的读取性能
@@ -17,13 +50,14 @@
 回答：不需要考虑超时机制，我们只需要实现一个初步的原型，验证算法可行性。
 4. 这个优化是否需要考虑Leader变更的情况？如果在Follower向旧Leader请求时发生了选举，如何处理？
 回答：不需要考虑Leader变更的情况，我们只需要实现一个初步的原型，验证算法可行性。
-5. 这个读取优化是作为Raft库的一部分实现，还是作为一个外部接口提供给使用者？
-回答：作为一个KV实现
-6. 领导者应该均匀的把读取请求转发给所有从节点，暂时不考虑从节点下线的情况，我们只需要验证优化思路能否实现。
+5.领导者应该均匀的把读取请求转发给所有从节点，暂时不考虑从节点下线的情况，我们只需要验证优化思路能否实现。
+6. 不要改变现在的api设计，follower read从节点读取的api和leader read的api是一样的，都是Get方法。api的行为也是一致的，都是读取数据。
+7. 其他细节可以参考etcd的实现
 # 开发要求
 -   你是一个经验丰富的Go语言开发工程师，熟悉Go语言的语法和特性
 -   你是一个有责任心的开发工程师，对于业务需求有清晰的认识，能够准确理解用户需求
 -   你需要使用etcd client进行测试，确保API接口的正确性
+-   你需要使用etcd client进行测试，确保主节点读取到的数据和从节点读取到的数据一致
 -   你需要给出详细的测试代码，并给出测试结果
 -   你需要根据测试结果继续修改代码，直到代码正确为止。
 -   使用SS命令检查网络监听
