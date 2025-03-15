@@ -56,19 +56,19 @@ clean:
 	rm -rf $(DIST_DIR)
 
 # 多平台编译
-.PHONY: build
-build: clean deps
-	@echo "$(GREEN)开始多平台编译...$(NC)"
-	@mkdir -p $(BUILD_DIR)
-	@mkdir -p $(DIST_DIR)
-	$(foreach platform,$(PLATFORMS), \
-		$(eval OS=$(word 1,$(subst /, ,$(platform)))) \
-		$(eval ARCH=$(word 2,$(subst /, ,$(platform)))) \
-		$(eval OUTPUT=$(BUILD_DIR)/$(PROJECT_NAME)-$(OS)-$(ARCH)$(if $(filter windows,$(OS)),,.exe)) \
-		GOOS=$(OS) GOARCH=$(ARCH) $(COMPILER) build $(GO_FLAGS) -o $(OUTPUT) && \
-		tar -czvf $(DIST_DIR)/$(PROJECT_NAME)-$(OS)-$(ARCH).tar.gz $(OUTPUT); \
-	)
-	@echo "$(GREEN)编译完成，产物位于 $(DIST_DIR)$(NC)"
+#.PHONY: build
+#build: clean deps
+#	@echo "$(GREEN)开始多平台编译...$(NC)"
+#	@mkdir -p $(BUILD_DIR)
+#	@mkdir -p $(DIST_DIR)
+#	$(foreach platform,$(PLATFORMS), \
+#		$(eval OS=$(word 1,$(subst /, ,$(platform)))) \
+#		$(eval ARCH=$(word 2,$(subst /, ,$(platform)))) \
+#		$(eval OUTPUT=$(BUILD_DIR)/$(PROJECT_NAME)-$(OS)-$(ARCH)$(if $(filter windows,$(OS)),,.exe)) \
+#		GOOS=$(OS) GOARCH=$(ARCH) $(COMPILER) build $(GO_FLAGS) -o $(OUTPUT) && \
+#		tar -czvf $(DIST_DIR)/$(PROJECT_NAME)-$(OS)-$(ARCH).tar.gz $(OUTPUT); \
+#	)
+#	@echo "$(GREEN)编译完成，产物位于 $(DIST_DIR)$(NC)"
 
 # 本地开发编译
 .PHONY: dev
