@@ -8,12 +8,13 @@ HRAFTD_EXECUTABLE="$RAW_PATH/hraftd"
 HRAFTD_DATA_DIR="$RAW_PATH/cluster_data"
 WORKLOAD_PATH="/home/taowong/Dev/Perf-KV"
 ETCD_ENDPOINTS="http://localhost:2379"
-YCSB_EXECUTABLE="$RAW_PATH/go-ycsb"
+YCSB_EXECUTABLE="./go-ycsb"
 
 # 测试结果保存在可执行文件目录下
 BASE_RESULT_DIR="$RAW_PATH/Test-Result-$(date +"%Y%m%d_%H%M%S")"
 WORKLOAD_TYPES=("workloada" "workloadb" "workloadc" "workloadd" "workloade" "workloadf")
 CLUSTER_SIZES=(5)
+THREAD_COUNTS=(64 128 256 512 1024)
 
 # 创建结果目录
 mkdir -p "$BASE_RESULT_DIR"
@@ -60,16 +61,27 @@ reset_cluster() {
     sleep 5
 }
 
+# 更新workload配置文件中的线程数量
+update_workload_thread_count() {
+    local workload_file=$1
+    local thread_count=$2
+    sed -i "s/threadcount=[0-9]*/threadcount=$thread_count/" "$workload_file"
+}
+
 # 执行性能测试函数
 run_performance_test() {
     local cluster_size=$1
     local workload_type=$2
     local iteration=$3
+    local thread_count=$4
 
-    local result_dir="$BASE_RESULT_DIR/nodes_${cluster_size}/${workload_type}/iteration_${iteration}"
+    local result_dir="$BASE_RESULT_DIR/nodes_${cluster_size}/${workload_type}/threads_${thread_count}/iteration_${iteration}"
     mkdir -p "$result_dir"
 
-    log_message "开始测试 - 集群大小: $cluster_size, 负载类型: $workload_type, 迭代: $iteration"
+    log_message "开始测试 - 集群大小: $cluster_size, 负载类型: $workload_type, 线程数: $thread_count, 迭代: $iteration"
+
+    # 更新workload配置文件中的线程数量
+    update_workload_thread_count "$WORKLOAD_PATH/$workload_type" "$thread_count"
 
     # 加载数据
     "$YCSB_EXECUTABLE" load etcd -P "$WORKLOAD_PATH/$workload_type" -p etcd.endpoints="$ETCD_ENDPOINTS" \
@@ -85,7 +97,7 @@ run_performance_test() {
     cp UPDATE-percentiles.txt "$result_dir/update_percentiles.txt"
     cp TOTAL-percentiles.txt "$result_dir/total_percentiles.txt"
 
-    log_message "测试完成 - 集群大小: $cluster_size, 负载类型: $workload_type, 迭代: $iteration"
+    log_message "测试完成 - 集群大小: $cluster_size, 负载类型: $workload_type, 线程数: $thread_count, 迭代: $iteration"
 }
 
 # 主测试循环
@@ -101,8 +113,10 @@ main() {
             reset_cluster "$cluster_size"
 
             for workload_type in "${WORKLOAD_TYPES[@]}"; do
-                # 执行测试
-                run_performance_test "$cluster_size" "$workload_type" "$round"
+                for thread_count in "${THREAD_COUNTS[@]}"; do
+                    # 执行测试
+                    run_performance_test "$cluster_size" "$workload_type" "$round" "$thread_count"
+                done
             done
         done
     done
