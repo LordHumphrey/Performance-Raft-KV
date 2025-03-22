@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 	"os"
+	"time"
 
-	"github.com/otoolep/hraftd/store"
 	"github.com/otoolep/hraftd/etcdapi"
+	"github.com/otoolep/hraftd/store"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func main() {
+func before_test_service() {
 	// 创建临时目录用于存储
 	tempDir, err := os.MkdirTemp("", "etcd-test")
 	if err != nil {

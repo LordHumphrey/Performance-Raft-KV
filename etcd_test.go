@@ -242,7 +242,7 @@ func TestEtcdAPI(t *testing.T) {
 	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
 	resp, err := cli.Get(ctx, "test_key")
 	cancel()
-	if (err != nil) {
+	if err != nil {
 		t.Fatalf("Get 操作失败: %v", err)
 	}
 	if len(resp.Kvs) == 0 {

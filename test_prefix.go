@@ -9,7 +9,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func main() {
+func before_test_prefix() {
 	// 创建etcd客户端
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   []string{"localhost:2379"},

@@ -9,9 +9,9 @@ import (
 
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"go.etcd.io/etcd/client/v3"
 )
 
 // Range implements the etcd v3 Range API.
@@ -137,8 +137,8 @@ func (s *Service) Range(ctx context.Context, req *pb.RangeRequest) (*pb.RangeRes
 		if len(key) > 0 && len(rangeEnd) > 0 {
 			// 这是etcd中WithPrefix()的实现方式
 			if strings.HasPrefix(rangeEnd, key[:len(key)-1]) &&
-			   len(rangeEnd) == len(key) &&
-			   rangeEnd[len(rangeEnd)-1] == key[len(key)-1]+1 {
+				len(rangeEnd) == len(key) &&
+				rangeEnd[len(rangeEnd)-1] == key[len(key)-1]+1 {
 				isPrefixQuery = true
 			}
 		}

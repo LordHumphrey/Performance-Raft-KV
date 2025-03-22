@@ -19,7 +19,7 @@ import (
 const (
 	DefaultHTTPAddr = "localhost:11000"
 	DefaultRaftAddr = "localhost:12000"
-	DefaultEtcdAddr = "localhost:2379"  // Default etcd API address
+	DefaultEtcdAddr = "localhost:2379" // Default etcd API address
 )
 
 // Command line parameters
