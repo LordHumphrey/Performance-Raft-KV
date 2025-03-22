@@ -1,58 +1,157 @@
 # 项目背景
 在Readme.md中描述了项目背景，这是一个较为成熟的KV存储项目，但是存在一些问题，需要你按照我的优化思路完成优化开发
 # 项目需求
-请你在这个项目的基础上，完成以下Follower Read优化：
-- 当客户端对一个 Follower 发起读请求的时候
-- 这个 Follower 会请求此时 Leader 的 Commit Index
-- 拿到 Leader 的最新的 Commit Index 后
-- 等本地 Apply 到 Leader 最新的 Commit Index 后，然后将这条数据返回给客户端
-Follower Read优化实现方案概要设计
-1. 总体架构
-目标：允许Follower节点直接处理读请求，减轻Leader负担
-核心思想：确保从Follower读取数据时满足线性一致性
-实现原理：等待Follower节点应用到Leader节点的最新提交索引后再读取数据
-2. 核心组件
-2.1 Leader Commit Index获取机制
-新增HTTP端点/leader-commit-index
-通过Hashicorp Raft库获取当前节点的CommitIndex
-在Store层提供GetCommitIndex()和GetLeaderCommitIndex()方法
-2.2 Follower Read处理流程
-检查当前节点角色
-如果是Follower，获取Leader的最新CommitIndex
-等待本地AppliedIndex达到Leader的CommitIndex
-从本地状态机读取数据返回
-2.3 等待机制
-在Store层实现WaitForCommitIndex(targetIndex)方法
-使用简单轮询或条件变量实现等待
-不考虑超时机制，仅实现基本原型
-2.4 读负载均衡
-维护活跃Follower节点列表
-使用轮询或随机策略选择节点
-Leader将读请求转发到选定Follower
-3. 接口设计
-GetCommitIndex() uint64
-GetAppliedIndex() uint64
-GetLeaderCommitIndex() (uint64, error)
-WaitForCommitIndex(targetIndex uint64) error
-Get(key string) (string, error) // 修改现有方法支持Follower读取
-## 测试策略
-1. 单元测试：验证新增的各个方法功能正确性
-2. 集成测试：验证完整的Follower Read流程
-3. 性能测试：比较优化前后的读取性能和Leader负载
-4. 一致性测试：确保从Follower读取的数据与从Leader读取的一致
-通过以上设计，可以实现一个基本的Follower Read功能，达到分散读负载和提高系统整体读取性能的目标。
-## 补充说明
-1. 这个优化的目的是什么？是为了提高读取的一致性还是为了减轻Leader的负担？
-回答：为了减轻Leader的负担，同时提高集群的读取性能
-2. Follower如何向Leader请求最新的Commit Index？是需要实现一个新的RPC接口，还是使用现有的某个RPC？
-回答：
-3. 如果本地Apply Index小于Leader的Commit Index，Follower需要等待多长时间？是否需要设置超时机制？
-回答：不需要考虑超时机制，我们只需要实现一个初步的原型，验证算法可行性。
-4. 这个优化是否需要考虑Leader变更的情况？如果在Follower向旧Leader请求时发生了选举，如何处理？
-回答：不需要考虑Leader变更的情况，我们只需要实现一个初步的原型，验证算法可行性。
-5.领导者应该均匀的把读取请求转发给所有从节点，暂时不考虑从节点下线的情况，我们只需要验证优化思路能否实现。
-6. 不要改变现在的api设计，follower read从节点读取的api和leader read的api是一样的，都是Get方法。api的行为也是一致的，都是读取数据。
-7. 其他细节可以参考etcd的实现
+请你在这个项目的基础上，为项目添加缺失的API：
+- 下面是压测工具调用Scan的方法，请你为项目添加缺少的API，从而能够通过压测工具的测试
+- 模仿我提供的代码，编写测试代码，并且确保能够通过Scan测试
+
+- ```golang
+
+	type etcdCreator struct{}
+
+	type etcdDB struct {
+		p      *properties.Properties
+		client *clientv3.Client
+	}
+
+	func init() {
+		ycsb.RegisterDBCreator("etcd", etcdCreator{})
+	}
+
+	func (c etcdCreator) Create(p *properties.Properties) (ycsb.DB, error) {
+		cfg, err := getClientConfig(p)
+		if err != nil {
+			return nil, err
+		}
+
+		client, err := clientv3.New(*cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		return &etcdDB{
+			p:      p,
+			client: client,
+		}, nil
+	}
+
+	func getClientConfig(p *properties.Properties) (*clientv3.Config, error) {
+		endpoints := p.GetString(etcdEndpoints, "localhost:2379")
+		dialTimeout := p.GetDuration(etcdDialTimeout, 2*time.Second)
+
+		var tlsConfig *tls.Config
+		if strings.Contains(endpoints, "https") {
+			tlsInfo := transport.TLSInfo{
+				CertFile:      p.MustGetString(etcdCertFile),
+				KeyFile:       p.MustGetString(etcdKeyFile),
+				TrustedCAFile: p.MustGetString(etcdCaFile),
+			}
+			c, err := tlsInfo.ClientConfig()
+			if err != nil {
+				return nil, err
+			}
+			tlsConfig = c
+		}
+
+		return &clientv3.Config{
+			Endpoints:   strings.Split(endpoints, ","),
+			DialTimeout: dialTimeout,
+			TLS:         tlsConfig,
+		}, nil
+	}
+
+	func (db *etcdDB) Close() error {
+		return db.client.Close()
+	}
+
+	func (db *etcdDB) InitThread(ctx context.Context, _ int, _ int) context.Context {
+		return ctx
+	}
+
+	func (db *etcdDB) CleanupThread(_ context.Context) {
+	}
+
+	func getRowKey(table string, key string) string {
+		return fmt.Sprintf("%s:%s", table, key)
+	}
+
+	func (db *etcdDB) Read(ctx context.Context, table string, key string, _ []string) (map[string][]byte, error) {
+		rkey := getRowKey(table, key)
+		var options []clientv3.OpOption
+		if db.p.GetBool(etcdSerializableReads, false) {
+			options = append(options, clientv3.WithSerializable())
+		}
+		value, err := db.client.Get(ctx, rkey, options...)
+		if err != nil {
+			return nil, err
+		}
+
+		if value.Count == 0 {
+			return nil, fmt.Errorf("could not find value for key [%s]", rkey)
+		}
+
+		var r map[string][]byte
+		err = json.NewDecoder(bytes.NewReader(value.Kvs[0].Value)).Decode(&r)
+		if err != nil {
+			return nil, err
+		}
+		return r, nil
+	}
+
+	func (db *etcdDB) Scan(ctx context.Context, table string, startKey string, count int, _ []string) ([]map[string][]byte, error) {
+		res := make([]map[string][]byte, count)
+		rkey := getRowKey(table, startKey)
+		options := []clientv3.OpOption{clientv3.WithFromKey(), clientv3.WithLimit(int64(count))}
+		if db.p.GetBool(etcdSerializableReads, false) {
+			options = append(options, clientv3.WithSerializable())
+		}
+		values, err := db.client.Get(ctx, rkey, options...)
+		if err != nil {
+			return nil, err
+		}
+
+		if values.Count != int64(count) {
+			return nil, fmt.Errorf("unexpected number of result for key [%s], expected %d but was %d", rkey, count, values.Count)
+		}
+
+		for _, v := range values.Kvs {
+			var r map[string][]byte
+			err = json.NewDecoder(bytes.NewReader(v.Value)).Decode(&r)
+			if err != nil {
+				return nil, err
+			}
+			res = append(res, r)
+		}
+		return res, nil
+	}
+
+	func (db *etcdDB) Update(ctx context.Context, table string, key string, values map[string][]byte) error {
+		rkey := getRowKey(table, key)
+		data, err := json.Marshal(values)
+		if err != nil {
+			return err
+		}
+		_, err = db.client.Put(ctx, rkey, string(data))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	func (db *etcdDB) Insert(ctx context.Context, table string, key string, values map[string][]byte) error {
+		return db.Update(ctx, table, key, values)
+	}
+
+	func (db *etcdDB) Delete(ctx context.Context, table string, key string) error {
+		_, err := db.client.Delete(ctx, getRowKey(table, key))
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+  ```
 # 开发要求
 -   你是一个经验丰富的Go语言开发工程师，熟悉Go语言的语法和特性
 -   你是一个有责任心的开发工程师，对于业务需求有清晰的认识，能够准确理解用户需求

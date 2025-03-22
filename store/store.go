@@ -15,6 +15,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -371,5 +372,54 @@ func (s *Store) ListN(n int, decode bool) map[string]string {
 		}
 	}
 
+	return result
+}
+
+// ListPrefix 返回具有指定前缀的键值对，支持限制返回数量
+// 如果 limit <= 0, 返回所有匹配的键值对
+func (s *Store) ListPrefix(prefix string, limit int64, decode bool) map[string]string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	result := make(map[string]string)
+	count := int64(0)
+	
+	for k, v := range s.m {
+		// 检查键是否有指定前缀
+		if strings.HasPrefix(k, prefix) {
+			if decode {
+				// 尝试解码
+				var decodedValue interface{}
+				err := json.Unmarshal([]byte(v), &decodedValue)
+				if err == nil {
+					// 如果解析成功，转换为字符串
+					switch val := decodedValue.(type) {
+					case string:
+						result[k] = val
+					case float64:
+						result[k] = fmt.Sprintf("%f", val)
+					case bool:
+						result[k] = fmt.Sprintf("%v", val)
+					default:
+						// 对于复杂类型，返回 JSON 字符串
+						jsonStr, _ := json.Marshal(val)
+						result[k] = string(jsonStr)
+					}
+				} else {
+					// 解码失败，保留原始值
+					result[k] = v
+				}
+			} else {
+				result[k] = v
+			}
+			
+			count++
+			// 如果达到限制数量，中断循环
+			if limit > 0 && count >= limit {
+				break
+			}
+		}
+	}
+	
 	return result
 }
