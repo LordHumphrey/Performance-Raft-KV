@@ -3,16 +3,17 @@
 # 性能测试脚本 - 键值存储系统
 
 # 设置基础路径和变量
-HRAFTD_EXECUTABLE="./Raw/hraftd"
-HRAFTD_DATA_DIR="./Raw/cluster_data"
+RAW_PATH="./Raw"
+HRAFTD_EXECUTABLE="$RAW_PATH/hraftd"
+HRAFTD_DATA_DIR="$RAW_PATH/cluster_data"
 WORKLOAD_PATH="/home/taowong/Dev/Perf-KV"
 ETCD_ENDPOINTS="http://localhost:2379"
-YCSB_EXECUTABLE="./go-ycsb"
+YCSB_EXECUTABLE="$RAW_PATH/go-ycsb"
 
 # 测试结果保存在可执行文件目录下
-BASE_RESULT_DIR="./Raw/Test-Result-$(date +"%Y%m%d_%H%M%S")"
+BASE_RESULT_DIR="$RAW_PATH/Test-Result-$(date +"%Y%m%d_%H%M%S")"
 WORKLOAD_TYPES=("workloada" "workloadb" "workloadc" "workloadd" "workloade" "workloadf")
-CLUSTER_SIZES=(3 5 7 9 11 15 21 31)
+CLUSTER_SIZES=(5)
 
 # 创建结果目录
 mkdir -p "$BASE_RESULT_DIR"
