@@ -38,11 +38,14 @@ func New(addr string, store *store.Store) *Service {
 
 // Start starts the service.
 func (s *Service) Start() error {
+	log.Println("开始启动etcd API服务...")
+
 	// 创建一个 gRPC 服务器
 	s.srv = grpc.NewServer()
 
 	// 注册 KV 服务
 	pb.RegisterKVServer(s.srv, s)
+	log.Println("已注册KV服务到gRPC服务器")
 
 	// 启用 gRPC 反射服务，这对于调试和一些客户端很有用
 	reflection.Register(s.srv)
@@ -53,6 +56,7 @@ func (s *Service) Start() error {
 		return err
 	}
 	s.ln = ln
+	log.Printf("etcd API服务开始监听 %s...", s.addr)
 
 	// 启动 gRPC 服务器
 	go func() {
@@ -60,6 +64,7 @@ func (s *Service) Start() error {
 			log.Fatalf("etcd API gRPC serve: %s", err)
 		}
 	}()
+	log.Println("etcd API gRPC服务器已启动")
 
 	// 提取主机和端口
 	host := s.addr
@@ -72,9 +77,17 @@ func (s *Service) Start() error {
 
 	// 创建一个 HTTP 服务器，将请求转发到 gRPC 服务器
 	// 这是为了支持 go-ycsb 等使用 HTTP 协议的客户端
-	// 使用相同的端口，但是 HTTP 服务器使用 gRPC 端口 + 10000
+	// 使用 HTTP 服务器使用与 gRPC 端口有关联的另一个端口
 	port, _ := strconv.Atoi(portStr)
-	httpPort := port + 10000
+	// 修改HTTP端口计算方式，确保端口不超过65535
+	var httpPort int
+	if port >= 60000 {
+		// 如果gRPC端口较大，则使用port-10000作为HTTP端口
+		httpPort = port - 10000
+	} else {
+		// 否则使用port+10000
+		httpPort = port + 10000
+	}
 	httpAddr := fmt.Sprintf("%s:%d", host, httpPort)
 
 	// 创建一个专用的 ServeMux，而不是使用全局的 DefaultServeMux

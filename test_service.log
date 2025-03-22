@@ -1,0 +1,59 @@
+2025-03-22T22:05:32.890+0800 [INFO]  raft: initial configuration: index=0 servers=[]
+2025-03-22T22:05:32.890+0800 [INFO]  raft: entering follower state: follower="Node at 127.0.0.1:12345 [Follower]" leader-address= leader-id=
+2025/03/22 22:05:32 开始启动etcd API服务...
+2025/03/22 22:05:32 已注册KV服务到gRPC服务器
+2025/03/22 22:05:32 etcd API服务开始监听 localhost:22379...
+2025/03/22 22:05:32 etcd API gRPC服务器已启动
+2025/03/22 22:05:32 etcd API service listening on gRPC: localhost:22379, HTTP: localhost:32379
+2025-03-22T22:05:34.157+0800 [WARN]  raft: heartbeat timeout reached, starting election: last-leader-addr= last-leader-id=
+2025-03-22T22:05:34.157+0800 [INFO]  raft: entering candidate state: node="Node at 127.0.0.1:12345 [Candidate]" term=2
+2025-03-22T22:05:34.157+0800 [DEBUG] raft: pre-voting for self: term=2 id=test-node
+2025-03-22T22:05:34.157+0800 [DEBUG] raft: calculated votes needed: needed=1 term=2
+2025-03-22T22:05:34.157+0800 [DEBUG] raft: pre-vote received: from=test-node term=2 tally=0
+2025-03-22T22:05:34.157+0800 [DEBUG] raft: pre-vote granted: from=test-node term=2 tally=1
+2025-03-22T22:05:34.157+0800 [INFO]  raft: pre-vote successful, starting election: term=2 tally=1 refused=0 votesNeeded=1
+2025-03-22T22:05:34.158+0800 [DEBUG] raft: voting for self: term=2 id=test-node
+2025-03-22T22:05:34.160+0800 [DEBUG] raft: vote granted: from=test-node term=2 tally=1
+2025-03-22T22:05:34.160+0800 [INFO]  raft: election won: term=2 tally=1
+2025-03-22T22:05:34.160+0800 [INFO]  raft: entering leader state: leader="Node at 127.0.0.1:12345 [Leader]"
+插入测试数据...
+插入键值对: test_scan_1 -> value1
+插入键值对: test_scan_2 -> value2
+插入键值对: test_scan_3 -> value3
+插入键值对: test_scan_4 -> value4
+插入键值对: test_scan_5 -> value5
+
+存储中的所有键值对:
+键: test_scan_5, 值: value5
+
+使用WithPrefix进行查询:
+DEBUG: Range请求 - key="test_scan_", rangeEnd="test_scan`", limit=0
+DEBUG: 从真实的etcd服务获取数据
+DEBUG: 从etcd获取到 0 个键值对
+得到前缀查询结果数量: 0
+
+使用WithRange进行查询:
+DEBUG: Range请求 - key="test_scan_", rangeEnd="test_scan`", limit=0
+DEBUG: 从真实的etcd服务获取数据
+DEBUG: 从etcd获取到 0 个键值对
+得到范围查询结果数量: 0
+
+使用WithLimit进行查询:
+DEBUG: Range请求 - key="test_scan_", rangeEnd="test_scan`", limit=3
+DEBUG: 从真实的etcd服务获取数据
+DEBUG: 从etcd获取到 0 个键值对
+得到带限制的查询结果数量: 0
+
+使用WithFromKey进行查询:
+DEBUG: Range请求 - key="test_scan_3", rangeEnd="\x00", limit=0
+DEBUG: 范围请求类型 - 前缀查询: false, rangeEnd: "\x00"
+DEBUG: 找到匹配的键值对数量: 0
+得到从特定键开始的查询结果数量: 0
+
+删除测试数据...
+DEBUG: DeleteRange请求 - key="test_scan_", rangeEnd="test_scan`"
+DEBUG: 从真实的etcd服务删除数据
+{"level":"warn","ts":"2025-03-22T22:05:34.912624+0800","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0xc0003a3880/localhost:2379","attempt":0,"error":"rpc error: code = Unimplemented desc = range delete not implemented"}
+{"level":"warn","ts":"2025-03-22T22:05:34.913826+0800","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0xc0003a2540/localhost:22379","attempt":0,"error":"rpc error: code = Internal desc = failed to delete from etcd: rpc error: code = Unimplemented desc = range delete not implemented"}
+2025/03/22 22:05:34 failed to delete prefix: rpc error: code = Internal desc = failed to delete from etcd: rpc error: code = Unimplemented desc = range delete not implemented
+exit status 1

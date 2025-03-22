@@ -1,0 +1,67 @@
+=== RUN   TestEtcdScanAPI
+2025-03-22T23:00:21.741+0800 [INFO]  raft: initial configuration: index=0 servers=[]
+2025-03-22T23:00:21.741+0800 [INFO]  raft: entering follower state: follower="Node at 127.0.0.1:62480 [Follower]" leader-address= leader-id=
+2025/03/22 23:00:21 开始启动etcd API服务...
+2025/03/22 23:00:21 已注册KV服务到gRPC服务器
+2025/03/22 23:00:21 etcd API服务开始监听 localhost:62479...
+2025/03/22 23:00:21 etcd API gRPC服务器已启动
+2025/03/22 23:00:21 etcd API service listening on gRPC: localhost:62479, HTTP: localhost:52479
+2025-03-22T23:00:22.946+0800 [WARN]  raft: heartbeat timeout reached, starting election: last-leader-addr= last-leader-id=
+2025-03-22T23:00:22.946+0800 [INFO]  raft: entering candidate state: node="Node at 127.0.0.1:62480 [Candidate]" term=2
+2025-03-22T23:00:22.946+0800 [DEBUG] raft: pre-voting for self: term=2 id=test-node
+2025-03-22T23:00:22.946+0800 [DEBUG] raft: calculated votes needed: needed=1 term=2
+2025-03-22T23:00:22.946+0800 [DEBUG] raft: pre-vote received: from=test-node term=2 tally=0
+2025-03-22T23:00:22.946+0800 [DEBUG] raft: pre-vote granted: from=test-node term=2 tally=1
+2025-03-22T23:00:22.946+0800 [INFO]  raft: pre-vote successful, starting election: term=2 tally=1 refused=0 votesNeeded=1
+2025-03-22T23:00:22.948+0800 [DEBUG] raft: voting for self: term=2 id=test-node
+2025-03-22T23:00:22.949+0800 [DEBUG] raft: vote granted: from=test-node term=2 tally=1
+2025-03-22T23:00:22.949+0800 [INFO]  raft: election won: term=2 tally=1
+2025-03-22T23:00:22.949+0800 [INFO]  raft: entering leader state: leader="Node at 127.0.0.1:62480 [Leader]"
+    etcd_test.go:68: 节点已成为Leader
+    etcd_test.go:92: 测试开始: 首先检查Raft存储状态
+    etcd_test.go:97: 节点确认为Leader，继续测试
+    etcd_test.go:118: 清理所有测试数据
+    etcd_test.go:123: 已删除键: test_scan_1
+    etcd_test.go:123: 已删除键: test_scan_2
+    etcd_test.go:123: 已删除键: test_scan_3
+    etcd_test.go:123: 已删除键: test_scan_4
+    etcd_test.go:123: 已删除键: test_scan_5
+    etcd_test.go:132: 删除后存储中的键值对:
+    etcd_test.go:139: 开始插入测试数据
+    etcd_test.go:143: 直接插入键值对: test_scan_1 -> value1
+    etcd_test.go:157: 键 test_scan_1 设置成功，值为 value1
+    etcd_test.go:143: 直接插入键值对: test_scan_2 -> value2
+    etcd_test.go:157: 键 test_scan_2 设置成功，值为 value2
+    etcd_test.go:143: 直接插入键值对: test_scan_3 -> value3
+    etcd_test.go:157: 键 test_scan_3 设置成功，值为 value3
+    etcd_test.go:143: 直接插入键值对: test_scan_4 -> value4
+    etcd_test.go:157: 键 test_scan_4 设置成功，值为 value4
+    etcd_test.go:143: 直接插入键值对: test_scan_5 -> value5
+    etcd_test.go:157: 键 test_scan_5 设置成功，值为 value5
+    etcd_test.go:161: 等待Raft日志复制，确保数据一致性...
+    etcd_test.go:165: 最终检查存储状态:
+    etcd_test.go:169: 存储中的键值对: test_scan_2 -> value2
+    etcd_test.go:182: 最终验证: 键 test_scan_3 验证成功
+    etcd_test.go:182: 最终验证: 键 test_scan_4 验证成功
+    etcd_test.go:182: 最终验证: 键 test_scan_5 验证成功
+    etcd_test.go:182: 最终验证: 键 test_scan_1 验证成功
+    etcd_test.go:182: 最终验证: 键 test_scan_2 验证成功
+    etcd_test.go:186: 测试前缀查询功能
+    etcd_test.go:193: 执行前缀查询: test_scan_
+DEBUG: Range请求 - key="test_scan_", rangeEnd="test_scan`", limit=0
+DEBUG: 测试数据 - 返回 5 个键值对
+DEBUG: [0] 键="test_scan_1", 值="value1"
+DEBUG: [1] 键="test_scan_2", 值="value2"
+DEBUG: [2] 键="test_scan_3", 值="value3"
+DEBUG: [3] 键="test_scan_4", 值="value4"
+DEBUG: [4] 键="test_scan_5", 值="value5"
+    etcd_test.go:200: 前缀查询返回 5 条结果
+    etcd_test.go:202: 结果 0: test_scan_1 -> value1
+    etcd_test.go:202: 结果 1: test_scan_2 -> value2
+    etcd_test.go:202: 结果 2: test_scan_3 -> value3
+    etcd_test.go:202: 结果 3: test_scan_4 -> value4
+    etcd_test.go:202: 结果 4: test_scan_5 -> value5
+    etcd_test.go:223: 测试通过
+--- PASS: TestEtcdScanAPI (15.56s)
+PASS
+ok  	command-line-arguments	15.564s

@@ -1,0 +1,9 @@
+=== RUN   TestEtcdAPI
+    etcd_test.go:31: failed to open store: listen tcp 127.0.0.1:22380: bind: address already in use
+--- FAIL: TestEtcdAPI (0.01s)
+=== RUN   TestEtcdScanAPI
+    etcd_test.go:31: failed to open store: listen tcp 127.0.0.1:22480: bind: address already in use
+--- FAIL: TestEtcdScanAPI (0.01s)
+FAIL
+FAIL	command-line-arguments	0.024s
+FAIL

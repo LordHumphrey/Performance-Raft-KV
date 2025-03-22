@@ -1,0 +1,18 @@
+=== RUN   TestEtcdAPI
+2025/03/22 22:01:18 Put 操作成功: test_key -> test_value
+2025/03/22 22:01:18 Get 操作成功: test_key -> test_value
+2025/03/22 22:01:18 Delete 操作成功: test_key
+2025/03/22 22:01:18 验证 Delete 操作成功: test_key 已被删除
+2025/03/22 22:01:18 所有测试通过！
+--- PASS: TestEtcdAPI (0.01s)
+=== RUN   TestEtcdScanAPI
+{"level":"warn","ts":"2025-03-22T22:01:18.99548+0800","logger":"etcd-client","caller":"v3@v3.5.10/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0xc00037a540/localhost:2379","attempt":0,"error":"rpc error: code = Unimplemented desc = range delete not implemented"}
+    etcd_test.go:91: 清理测试数据时出错(可以忽略): rpc error: code = Unimplemented desc = range delete not implemented
+2025/03/22 22:01:19 成功插入测试数据
+DEBUG TESTER: 进行前缀查询，查询key="test_scan_"，使用WithPrefix()
+DEBUG TESTER: 前缀查询结果数量: 0
+    etcd_test.go:124: 前缀查询返回的结果数量不正确: 期望 5, 实际 0
+--- FAIL: TestEtcdScanAPI (0.03s)
+FAIL
+FAIL	command-line-arguments	0.043s
+FAIL

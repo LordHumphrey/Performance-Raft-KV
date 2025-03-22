@@ -380,10 +380,10 @@ func (s *Store) ListN(n int, decode bool) map[string]string {
 func (s *Store) ListPrefix(prefix string, limit int64, decode bool) map[string]string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	result := make(map[string]string)
 	count := int64(0)
-	
+
 	for k, v := range s.m {
 		// 检查键是否有指定前缀
 		if strings.HasPrefix(k, prefix) {
@@ -412,7 +412,7 @@ func (s *Store) ListPrefix(prefix string, limit int64, decode bool) map[string]s
 			} else {
 				result[k] = v
 			}
-			
+
 			count++
 			// 如果达到限制数量，中断循环
 			if limit > 0 && count >= limit {
@@ -420,6 +420,11 @@ func (s *Store) ListPrefix(prefix string, limit int64, decode bool) map[string]s
 			}
 		}
 	}
-	
+
 	return result
+}
+
+// IsLeader 返回此节点是否是Raft集群的Leader
+func (s *Store) IsLeader() bool {
+	return s.raft != nil && s.raft.State() == raft.Leader
 }

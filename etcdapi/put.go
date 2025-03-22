@@ -2,6 +2,7 @@ package etcdapi
 
 import (
 	"context"
+	"fmt"
 
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	"google.golang.org/grpc/codes"
@@ -18,9 +19,22 @@ func (s *Service) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse,
 	key := string(req.Key)
 	value := string(req.Value)
 
+	fmt.Printf("DEBUG: Put操作 - key=%q, value=%q\n", key, value)
+
 	// Set the key-value pair in the store
 	if err := s.store.Set(key, value); err != nil {
+		fmt.Printf("DEBUG: Set操作失败 - key=%q, value=%q, error=%v\n", key, value, err)
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// 验证键值对是否已成功存储
+	storedValue, err := s.store.Get(key, false)
+	if err != nil {
+		fmt.Printf("DEBUG: 验证Set操作失败 - 无法获取key=%q: %v\n", key, err)
+	} else if storedValue != value {
+		fmt.Printf("DEBUG: 验证Set操作失败 - key=%q, 期望值=%q, 实际值=%q\n", key, value, storedValue)
+	} else {
+		fmt.Printf("DEBUG: 验证Set操作成功 - key=%q 已正确存储\n", key)
 	}
 
 	// Build response

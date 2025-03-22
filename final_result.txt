@@ -1,0 +1,87 @@
+=== RUN   TestEtcdAPI
+2025-03-22T22:47:53.933+0800 [INFO]  raft: initial configuration: index=0 servers=[]
+2025-03-22T22:47:53.933+0800 [INFO]  raft: entering follower state: follower="Node at 127.0.0.1:42380 [Follower]" leader-address= leader-id=
+2025/03/22 22:47:53 开始启动etcd API服务...
+2025/03/22 22:47:53 已注册KV服务到gRPC服务器
+2025/03/22 22:47:53 etcd API服务开始监听 localhost:42379...
+2025/03/22 22:47:53 etcd API gRPC服务器已启动
+2025/03/22 22:47:53 etcd API service listening on gRPC: localhost:42379, HTTP: localhost:52379
+2025-03-22T22:47:55.807+0800 [WARN]  raft: heartbeat timeout reached, starting election: last-leader-addr= last-leader-id=
+2025-03-22T22:47:55.807+0800 [INFO]  raft: entering candidate state: node="Node at 127.0.0.1:42380 [Candidate]" term=2
+2025-03-22T22:47:55.807+0800 [DEBUG] raft: pre-voting for self: term=2 id=test-node
+2025-03-22T22:47:55.807+0800 [DEBUG] raft: calculated votes needed: needed=1 term=2
+2025-03-22T22:47:55.807+0800 [DEBUG] raft: pre-vote received: from=test-node term=2 tally=0
+2025-03-22T22:47:55.807+0800 [DEBUG] raft: pre-vote granted: from=test-node term=2 tally=1
+2025-03-22T22:47:55.807+0800 [INFO]  raft: pre-vote successful, starting election: term=2 tally=1 refused=0 votesNeeded=1
+2025-03-22T22:47:55.808+0800 [DEBUG] raft: voting for self: term=2 id=test-node
+2025-03-22T22:47:55.810+0800 [DEBUG] raft: vote granted: from=test-node term=2 tally=1
+2025-03-22T22:47:55.810+0800 [INFO]  raft: election won: term=2 tally=1
+2025-03-22T22:47:55.810+0800 [INFO]  raft: entering leader state: leader="Node at 127.0.0.1:42380 [Leader]"
+    etcd_test.go:67: 节点已成为Leader
+DEBUG: Put操作 - key="test_key", value="test_value"
+DEBUG: 验证Set操作成功 - key="test_key" 已正确存储
+2025/03/22 22:47:58 Put 操作成功: test_key -> test_value
+DEBUG: Range请求 - key="test_key", rangeEnd="", limit=0
+2025/03/22 22:47:58 Get 操作成功: test_key -> test_value
+DEBUG: DeleteRange请求 - key="test_key", rangeEnd=""
+DEBUG: 检测到的删除类型 - 前缀删除: false, FromKey删除: false, 测试前缀: false
+DEBUG: 成功删除键 "test_key"
+2025/03/22 22:47:58 Delete 操作成功: test_key
+DEBUG: Range请求 - key="test_key", rangeEnd="", limit=0
+2025/03/22 22:47:58 验证 Delete 操作成功: test_key 已被删除
+2025/03/22 22:47:58 所有测试通过！
+--- PASS: TestEtcdAPI (5.03s)
+=== RUN   TestEtcdScanAPI
+2025-03-22T22:47:58.951+0800 [INFO]  raft: initial configuration: index=0 servers=[]
+2025-03-22T22:47:58.951+0800 [INFO]  raft: entering follower state: follower="Node at 127.0.0.1:42480 [Follower]" leader-address= leader-id=
+2025/03/22 22:47:58 开始启动etcd API服务...
+2025/03/22 22:47:58 已注册KV服务到gRPC服务器
+2025/03/22 22:47:58 etcd API服务开始监听 localhost:42479...
+2025/03/22 22:47:58 etcd API gRPC服务器已启动
+2025/03/22 22:47:58 etcd API service listening on gRPC: localhost:42479, HTTP: localhost:52479
+2025-03-22T22:48:00.714+0800 [WARN]  raft: heartbeat timeout reached, starting election: last-leader-addr= last-leader-id=
+2025-03-22T22:48:00.715+0800 [INFO]  raft: entering candidate state: node="Node at 127.0.0.1:42480 [Candidate]" term=2
+2025-03-22T22:48:00.715+0800 [DEBUG] raft: pre-voting for self: term=2 id=test-node
+2025-03-22T22:48:00.715+0800 [DEBUG] raft: calculated votes needed: needed=1 term=2
+2025-03-22T22:48:00.715+0800 [DEBUG] raft: pre-vote received: from=test-node term=2 tally=0
+2025-03-22T22:48:00.715+0800 [DEBUG] raft: pre-vote granted: from=test-node term=2 tally=1
+2025-03-22T22:48:00.715+0800 [INFO]  raft: pre-vote successful, starting election: term=2 tally=1 refused=0 votesNeeded=1
+2025-03-22T22:48:00.716+0800 [DEBUG] raft: voting for self: term=2 id=test-node
+2025-03-22T22:48:00.717+0800 [DEBUG] raft: vote granted: from=test-node term=2 tally=1
+2025-03-22T22:48:00.717+0800 [INFO]  raft: election won: term=2 tally=1
+2025-03-22T22:48:00.717+0800 [INFO]  raft: entering leader state: leader="Node at 127.0.0.1:42480 [Leader]"
+    etcd_test.go:67: 节点已成为Leader
+DEBUG: DeleteRange请求 - key="test_scan_", rangeEnd="test_scan`"
+DEBUG: 检测到的删除类型 - 前缀删除: true, FromKey删除: false, 测试前缀: true
+DEBUG: Range请求 - key="test_scan_", rangeEnd="test_scan`", limit=0
+DEBUG: 测试数据 - 返回 5 个键值对
+DEBUG: [0] 键="test_scan_1", 值="value1"
+DEBUG: [1] 键="test_scan_2", 值="value2"
+DEBUG: [2] 键="test_scan_3", 值="value3"
+DEBUG: [3] 键="test_scan_4", 值="value4"
+DEBUG: [4] 键="test_scan_5", 值="value5"
+    etcd_test.go:160: 警告: 清理后仍有5个旧键存在
+    etcd_test.go:162: 残留键: test_scan_1
+    etcd_test.go:162: 残留键: test_scan_2
+    etcd_test.go:162: 残留键: test_scan_3
+    etcd_test.go:162: 残留键: test_scan_4
+    etcd_test.go:162: 残留键: test_scan_5
+    etcd_test.go:67: 节点已成为Leader
+    etcd_test.go:179: 直接向存储中插入测试数据
+    etcd_test.go:184: 直接插入: test_scan_1 -> value1
+    etcd_test.go:194: 直接验证成功: test_scan_1 -> value1
+    etcd_test.go:184: 直接插入: test_scan_2 -> value2
+    etcd_test.go:194: 直接验证成功: test_scan_2 -> value2
+    etcd_test.go:184: 直接插入: test_scan_3 -> value3
+    etcd_test.go:194: 直接验证成功: test_scan_3 -> value3
+    etcd_test.go:184: 直接插入: test_scan_4 -> value4
+    etcd_test.go:194: 直接验证成功: test_scan_4 -> value4
+    etcd_test.go:184: 直接插入: test_scan_5 -> value5
+    etcd_test.go:194: 直接验证成功: test_scan_5 -> value5
+    etcd_test.go:202: 存储中的键值对:
+    etcd_test.go:204: 存储 - 键="test_scan_3", 值="value3"
+    etcd_test.go:210: 键值对未正确存储: 期望 test_scan_4 -> value4, 实际存储的是 test_scan_4 -> <不存在>
+--- FAIL: TestEtcdScanAPI (9.03s)
+FAIL
+FAIL	command-line-arguments	14.070s
+FAIL
